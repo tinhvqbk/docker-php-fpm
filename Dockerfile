@@ -1,27 +1,43 @@
 FROM php:7.2-fpm
 
-# Install required librairies
+# Set working directory
+WORKDIR /var/www
+
+# Install dependencies
 RUN apt-get update && apt-get install -y \
     git \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    zip \
     unzip \
-    zlib1g-dev \
-    libjpeg-dev\
-    libpng-dev\
-    libfreetype6-dev \
-    libpq-dev \
-    libicu-dev g++
+    npm \
+    cron \
+    nodejs \
+    iputils-ping \
+    mariadb-client \
+    rsyslog
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN docker-php-ext-install mysqli pdo_mysql mbstring exif pcntl bcmath gd
+
 
 # Install composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-RUN composer --version
 
-# Configure PHP extensions
-RUN docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/
+# Add user for application
+RUN groupadd -g 1000 www
+RUN useradd -u 1000 -ms /bin/bash -g www www
 
-# Install PHP extensions
-RUN docker-php-ext-install pdo pdo_mysql zip gd intl mysqli
+# Copy existing application directory contents
+# COPY . /var/www/html
 
-# Import custom php.ini
-COPY ./php.ini /usr/local/etc/php/
+## Copy existing application directory permissions
+COPY --chown=www:www . /var/www
+#
+## Change current user to www
+USER www
 
-WORKDIR /var/www
+# Expose port 9000 and start php-fpm server
+EXPOSE 9000
+CMD ["php-fpm"]
